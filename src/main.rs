@@ -5,18 +5,20 @@
 #![no_std]
 #![no_main]
 
-use crate::{arch::arch_init, platform::platform_init};
+use crate::cpu::idt::idt_init;
+use crate::gfx::framebuffer::framebuffer_init;
+use crate::mm::pmm::pmm_init;
 use crate::gfx::terminal;
 pub mod mm;
 pub mod gfx;
-pub mod arch;
-pub mod platform;
+pub mod cpu;
 
 #[no_mangle]
 unsafe extern "C" fn _start() -> ! {
+    framebuffer_init();
     println!("Object Kernel");
-    arch_init();
-    platform_init();
+    pmm_init();
+    idt_init();
     loop {}
 }
 
