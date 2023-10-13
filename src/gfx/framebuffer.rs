@@ -24,21 +24,21 @@ pub struct Framebuffer {
 }
 
 impl Framebuffer {
-    fn pixel(&self, x: usize, y: usize, color: u32) {
+    pub fn pixel(&self, x: usize, y: usize, color: u32) {
         let pixel_offset = y * self.pitch / 4 + x;
         unsafe {
             *(self.address.add(pixel_offset)) = color;
         }
     }
 
-    fn read_pixel(&self, x: usize, y: usize) -> u32 {
+    pub fn read_pixel(&self, x: usize, y: usize) -> u32 {
         let pixel_offset = y * self.pitch / 4 + x;
         return unsafe {
             *(self.address.add(pixel_offset))
         };
     }
 
-    fn rect(&self, x0: usize, y0: usize, x1: usize, y1: usize, border: u32, fill: u32) {
+    pub fn rect(&self, x0: usize, y0: usize, x1: usize, y1: usize, border: u32, fill: u32) {
         for py in y0..=y1 {
             for px in x0..=x1 {
                 if px == x0 || px == x1 || py == y0 || py == y1 {
@@ -50,7 +50,7 @@ impl Framebuffer {
         }
     }
 
-    fn line(&self, x0: usize, y0: usize, x1: usize, y1: usize, color: u32) {
+    pub fn line(&self, x0: usize, y0: usize, x1: usize, y1: usize, color: u32) {
         let mut x0: isize = x0.try_into().unwrap();
         let mut y0: isize = y0.try_into().unwrap();
         let x1: isize = x1.try_into().unwrap();
@@ -83,7 +83,7 @@ impl Framebuffer {
         }
     }
 
-    fn clear(&self, color: u32) {
+    pub fn clear(&self, color: u32) {
         for y in 0..self.height {
             for x in 0..self.width {
                 self.pixel(x, y, color)
@@ -91,7 +91,7 @@ impl Framebuffer {
         }
     }
 
-    fn character(&self, x: usize, y: usize, c: u8, color: u32) {
+    pub fn character(&self, x: usize, y: usize, c: u8, color: u32) {
         for py in y..y + 16 {
             for px in x..x + 8 {
                 if crate::gfx::framebuffer::FONT[(c as usize) * 16 + py as usize - y as usize] & (128 >> (px - x)) != 0 {
@@ -101,7 +101,7 @@ impl Framebuffer {
         }
     }
 
-    fn string(&self, x: usize, y: usize, s: &[u8], wrap: Option<usize>, color: u32) {
+    pub fn string(&self, x: usize, y: usize, s: &[u8], wrap: Option<usize>, color: u32) {
         let mut line_length = 0;
         let mut line = 0;
         for c in s {
