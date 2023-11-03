@@ -1,2 +1,2 @@
-pub mod idt;
+pub mod descriptors;
 pub mod exceptions;

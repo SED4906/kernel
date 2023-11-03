@@ -1,4 +1,6 @@
-pub static FONT: &[u8] = include_bytes!("unifont.bin");
+pub static FONT: &[u8] = include_bytes!("FM-TOWNS.F08");
+const FONT_HEIGHT: usize = 8;
+//pub static FONT: &[u8] = include_bytes!("unifont.bin");
 use core::usize;
 
 static FRAMEBUFFER_REQUEST: limine::FramebufferRequest = limine::FramebufferRequest::new(0);
@@ -92,9 +94,9 @@ impl Framebuffer {
     }
 
     pub fn character(&self, x: usize, y: usize, c: u8, color: u32) {
-        for py in y..y + 16 {
+        for py in y..y + FONT_HEIGHT {
             for px in x..x + 8 {
-                if crate::gfx::framebuffer::FONT[(c as usize) * 16 + py as usize - y as usize] & (128 >> (px - x)) != 0 {
+                if crate::gfx::framebuffer::FONT[(c as usize) * FONT_HEIGHT + py as usize - y as usize] & (128 >> (px - x)) != 0 {
                     self.pixel(px, py, color);
                 }
             }
@@ -114,7 +116,7 @@ impl Framebuffer {
                     line += 1;
                 }
                 _ => {
-                    self.character(x + line_length * 8, y + line * 16, *c, color);
+                    self.character(x + line_length * 8, y + line * 8, *c, color);
                     line_length += 1;
                 }
             };
