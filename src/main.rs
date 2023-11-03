@@ -7,8 +7,11 @@
 #![no_main]
 
 use error::KernelError;
+use x86_64::instructions::interrupts;
 
 use crate::cpu::descriptors::desc_init;
+use crate::drivers::pic::pic_init;
+use crate::drivers::pit::pit_init;
 use crate::gfx::framebuffer::framebuffer_init;
 use crate::mm::mm_init;
 use crate::gfx::terminal;
@@ -19,6 +22,7 @@ pub mod cpu;
 pub mod process;
 pub mod error;
 pub mod serial;
+pub mod drivers;
 
 #[no_mangle]
 unsafe extern "C" fn _start() -> ! {
@@ -28,7 +32,10 @@ unsafe extern "C" fn _start() -> ! {
     desc_init();
     mm_init();
     //load_drivers().expect("couldn't load drivers");
-    create_process(&[0xEB, 0xFE]).expect("couldn't create process");
+    pic_init();
+    pit_init();
+    create_process(&[0xEB, 0xFE]).expect("couldn't create process 1");
+    create_process(&[0xEB, 0xFE]).expect("couldn't create process 2");
     switch_to();
     loop {}
 }

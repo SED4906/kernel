@@ -1,3 +1,5 @@
+use core::arch::asm;
+use crate::mm::vmm::KERNEL_PAGEMAP;
 use x86_64::structures::idt::{InterruptStackFrame, PageFaultErrorCode};
 use macros::{remaining_interrupt_handlers,set_remaining_interrupt_handlers};
 #[macro_export]
@@ -11,6 +13,7 @@ macro_rules! handle_interrupt {
 }
 
 fn interrupt_handler(which: u8, stack: InterruptStackFrame, error_code: Option<u64>) {
+    unsafe{asm!("mov cr3, {0}",in(reg) KERNEL_PAGEMAP);}
     if let Some(error_code) = error_code {
         panic!("Unhandled interrupt #{which}: {error_code} @ rip{:x}; rsp{:x}", stack.instruction_pointer.as_u64(), stack.stack_pointer.as_u64());
     } else {
@@ -102,8 +105,82 @@ extern "x86-interrupt" fn security_exception(stack: InterruptStackFrame, error_c
     handle_interrupt!(err 30 stack error_code);
 }
 
+#[naked]
 extern "x86-interrupt" fn irq_timer(stack: InterruptStackFrame) {
-    
+    unsafe{asm!(
+        "push rax",
+        "push rbx",
+        "push rcx",
+        "push rdx",
+        "push rsi",
+        "push rdi",
+        "push rbp",
+        "push r8",
+        "push r9",
+        "push r10",
+        "push r11",
+        "push r12",
+        "push r13",
+        "push r14",
+        "push r15",
+        "pop rsi",
+        "mov rdi, 15",
+        "call save_process_register",
+        "pop rsi",
+        "mov rdi, 14",
+        "call save_process_register",
+        "pop rsi",
+        "mov rdi, 13",
+        "call save_process_register",
+        "pop rsi",
+        "mov rdi, 12",
+        "call save_process_register",
+        "pop rsi",
+        "mov rdi, 11",
+        "call save_process_register",
+        "pop rsi",
+        "mov rdi, 10",
+        "call save_process_register",
+        "pop rsi",
+        "mov rdi, 9",
+        "call save_process_register",
+        "pop rsi",
+        "mov rdi, 8",
+        "call save_process_register",
+        "pop rsi",
+        "mov rdi, 6",
+        "call save_process_register",
+        "pop rsi",
+        "mov rdi, 5",
+        "call save_process_register",
+        "pop rsi",
+        "mov rdi, 4",
+        "call save_process_register",
+        "pop rsi",
+        "mov rdi, 3",
+        "call save_process_register",
+        "pop rsi",
+        "mov rdi, 2",
+        "call save_process_register",
+        "pop rsi",
+        "mov rdi, 1",
+        "call save_process_register",
+        "pop rsi",
+        "mov rdi, 0",
+        "call save_process_register",
+        "mov rdi, 7",
+        "mov rsi, [rsp+24]",
+        "call save_process_register",
+        "mov rdi, [rsp]",
+        "call save_process_instruction_pointer",
+        "add rsp, 40",
+        "mov rax, {0}",
+        "mov cr3, rax",
+        "call go_next_process",
+        "jmp switch_to",
+        sym KERNEL_PAGEMAP,
+        options(noreturn)
+    )}
 }
 
 remaining_interrupt_handlers!();

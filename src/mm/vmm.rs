@@ -4,6 +4,7 @@ use crate::{error::KernelError, serial, serial_println, println};
 
 use super::pmm::Freelist;
 
+#[no_mangle]
 pub static mut KERNEL_PAGEMAP: u64 = 0;
 
 pub unsafe fn map_to(pagemap: u64, page: u64, frame: u64, flags: u64) -> Result<u64, KernelError> {

@@ -1,8 +1,8 @@
 use core::arch::asm;
 
-use x86_64::VirtAddr;
+use x86_64::{VirtAddr, registers::control::{Cr3, Cr3Flags}, structures::{idt::InterruptStackFrame, paging::PhysFrame}, PhysAddr};
 
-use crate::{mm::{vmm::{create_address_space, copy_image_into_other_address_space, map_to}, pmm::Freelist}, error::KernelError, cpu::descriptors::TSS};
+use crate::{mm::{vmm::{create_address_space, copy_image_into_other_address_space, map_to}, pmm::Freelist}, error::KernelError, cpu::descriptors::TSS, serial_println};
 
 pub struct Process {
     pub registers: [u64;16],
@@ -10,17 +10,33 @@ pub struct Process {
     pub address_space: u64,
 }
 
+pub struct ProcessList {
+    proc: *mut Process,
+    next: Option<*mut ProcessList>,
+    prev: Option<*mut ProcessList>,
+}
+
 const PROCESS_INFO_PAGE: u64 = 0x40000;
 const PROCESS_RECVBOX_PAGE: u64 = 0x10000;
 const PROCESS_SENDBOX_PAGE: u64 = 0x18000;
 
 pub static mut CURRENT_PROCESS: Option<*mut Process> = None;
-pub static mut PROCESS_LIST: Option<*mut Process> = None;
+pub static mut PROCESS_LIST: Option<*mut ProcessList> = None;
 
 pub unsafe fn create_process(image: &[u8]) -> Result<(), KernelError> {
     let process = create_process_setup(image)?;
+    let process_list = Freelist::allocate::<ProcessList>()?;
+    (*process_list).proc = process;
     if CURRENT_PROCESS.is_none() {
         CURRENT_PROCESS = Some(process);
+        (*process_list).next = Some(process_list);
+        (*process_list).prev = Some(process_list);
+        PROCESS_LIST = Some(process_list);
+    } else {
+        (*process_list).next = PROCESS_LIST;
+        (*process_list).prev = (*PROCESS_LIST.unwrap()).prev;
+        (*(*PROCESS_LIST.unwrap()).prev.unwrap()).next = Some(process_list);
+        (*PROCESS_LIST.unwrap()).prev = Some(process_list);
     }
     Ok(())
 }
@@ -30,7 +46,7 @@ pub unsafe fn create_process_setup(image: &[u8]) -> Result<*mut Process, KernelE
     let entry_point = load_process_image(address_space, image)?;
     let process = Freelist::allocate::<Process>()?;
     *process = Process {
-        registers: [0;16],
+        registers: [0,0,0,0,0,0,0,STACK_TOP,0,0,0,0,0,0,0,0],
         instruction_pointer: entry_point,
         address_space,
     };
@@ -56,6 +72,7 @@ unsafe extern "C" fn save_stack_to_tss(stack_pointer: u64) {
     TSS.privilege_stack_table[0] = VirtAddr::new(stack_pointer);
 }
 
+#[no_mangle]
 #[naked]
 pub unsafe extern "C" fn switch_to() {
     asm!(
@@ -66,6 +83,9 @@ pub unsafe extern "C" fn switch_to() {
         "call get_process_register",
         "push rax",
         "pushfq",
+        "pop rax",
+        "or rax, (1<<9)",
+        "push rax",
         "push 0x1b",
         "call get_process_instruction_pointer",
         "push rax",
@@ -116,6 +136,9 @@ pub unsafe extern "C" fn switch_to() {
         "push rax",
         "call get_process_address_space",
         "mov cr3, rax",
+        "mov dx, 0x20",
+        "mov al, 0x20",
+        "out dx, al",
         "pop r15",
         "pop r14",
         "pop r13",
@@ -142,6 +165,12 @@ pub unsafe extern "C" fn get_process_register(which: usize) -> u64 {
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn save_process_register(which: usize, value: u64) {
+    let current_process = PROCESS_INFO_PAGE as *mut Process;
+    (*current_process).registers[which] = value;
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn get_process_address_space() -> u64 {
     let current_process = CURRENT_PROCESS.expect("no current process to get adress space from");
     (*current_process).address_space
@@ -151,4 +180,17 @@ pub unsafe extern "C" fn get_process_address_space() -> u64 {
 pub unsafe extern "C" fn get_process_instruction_pointer() -> u64 {
     let current_process = CURRENT_PROCESS.expect("no current process to get instruction pointer from");
     (*current_process).instruction_pointer
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn save_process_instruction_pointer(value: u64) {
+    let current_process = PROCESS_INFO_PAGE as *mut Process;
+    (*current_process).instruction_pointer = value;
+}
+
+#[no_mangle]
+unsafe extern "C" fn go_next_process() {
+    let process_list = PROCESS_LIST.unwrap();
+    PROCESS_LIST = (*process_list).next;
+    CURRENT_PROCESS = Some((*PROCESS_LIST.unwrap()).proc);
 }
