@@ -1,8 +1,8 @@
 use core::arch::asm;
 
-use x86_64::{VirtAddr, registers::control::{Cr3, Cr3Flags}, structures::{idt::InterruptStackFrame, paging::PhysFrame}, PhysAddr};
+use x86_64::VirtAddr;
 
-use crate::{mm::{vmm::{create_address_space, copy_image_into_other_address_space, map_to}, pmm::Freelist}, error::KernelError, cpu::descriptors::TSS, serial_println};
+use crate::{mm::{vmm::{create_address_space, copy_image_into_other_address_space, map_to}, pmm::Freelist}, error::KernelError, cpu::descriptors::TSS};
 
 pub struct Process {
     pub registers: [u64;16],
@@ -17,8 +17,6 @@ pub struct ProcessList {
 }
 
 const PROCESS_INFO_PAGE: u64 = 0x40000;
-const PROCESS_RECVBOX_PAGE: u64 = 0x10000;
-const PROCESS_SENDBOX_PAGE: u64 = 0x18000;
 
 pub static mut CURRENT_PROCESS: Option<*mut Process> = None;
 pub static mut PROCESS_LIST: Option<*mut ProcessList> = None;

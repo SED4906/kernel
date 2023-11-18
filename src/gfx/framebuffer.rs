@@ -85,6 +85,31 @@ impl Framebuffer {
         }
     }
 
+    pub fn circle(&self, xc: usize, yc: usize, r: usize, color: u32) {
+        let mut t1: isize = r as isize/16;
+        let mut x: isize = r as isize;
+        let mut y: isize = 0;
+        while x >= y {
+            let xo = x as usize;
+            let yo = y as usize;
+            self.pixel(xc+xo, yc+yo, color);
+            self.pixel(xc+xo, yc-yo, color);
+            self.pixel(xc-xo, yc+yo, color);
+            self.pixel(xc-xo, yc-yo, color);
+            self.pixel(xc+yo, yc+xo, color);
+            self.pixel(xc+yo, yc-xo, color);
+            self.pixel(xc-yo, yc+xo, color);
+            self.pixel(xc-yo, yc-xo, color);
+            y += 1;
+            t1 += y;
+            let t2 = t1 - x;
+            if t2 >= 0 {
+                t1 = t2;
+                x -= 1;
+            }
+        }
+    }
+
     pub fn clear(&self, color: u32) {
         for y in 0..self.height {
             for x in 0..self.width {
@@ -103,13 +128,16 @@ impl Framebuffer {
         }
     }
 
-    pub fn string(&self, x: usize, y: usize, s: &[u8], wrap: Option<usize>, color: u32) {
+    pub fn string(&self, x: usize, y: usize, s: &[u8], wrap: Option<usize>, color: u32) -> (usize, usize) {
         let mut line_length = 0;
         let mut line = 0;
         for c in s {
             match c {
                 8 => line_length -= 1,
-                9 => line_length += 8,
+                9 => {
+                    line_length += 8;
+                    line_length &= !7;
+                },
                 13 => line_length = 0,
                 10 => {
                     line_length = 0;
@@ -127,5 +155,6 @@ impl Framebuffer {
                 }
             }
         }
+        return (line_length, line)
     }
 }
