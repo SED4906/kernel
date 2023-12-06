@@ -6,6 +6,6 @@ pub enum KernelError {
     CreateAddressSpace,
     DestroyAddressSpace,
     LoadProcessImage,
-    LoadInitProcess,
+    LoadModules,
     SerialInit
 }

@@ -2,7 +2,7 @@ use core::arch::asm;
 
 use x86_64::VirtAddr;
 
-use crate::{mm::{vmm::{create_address_space, copy_image_into_other_address_space, map_to}, pmm::Freelist}, error::KernelError, cpu::descriptors::TSS};
+use crate::{mm::{vmm::{create_address_space, copy_image_into_address_space, map_to}, pmm::Freelist}, error::KernelError, hw::descriptors::TSS};
 
 pub struct Process {
     pub registers: [u64;16],
@@ -61,7 +61,7 @@ const STACK_PAGES: u64 = 8;
 
 pub unsafe fn load_process_image(address_space: u64, image: &[u8]) -> Result<u64, KernelError> {
     let entry_point = ENTRY_POINT;
-    copy_image_into_other_address_space(address_space, image, entry_point as *mut u8)?;
+    copy_image_into_address_space(address_space, image, entry_point as usize)?;
     Ok(entry_point)
 }
 

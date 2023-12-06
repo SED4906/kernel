@@ -1,6 +1,6 @@
 use x86_64::registers::control::Cr3;
 
-use crate::error::KernelError;
+use crate::{error::KernelError, serial_println};
 
 use super::pmm::Freelist;
 
@@ -46,6 +46,7 @@ pub unsafe fn translate_page(pagemap: u64, page: u64) -> Result<u64, KernelError
 }
 
 unsafe fn translate_page_step(pmlx: *mut [u64;512], entry: usize) -> Result<*mut [u64;512], KernelError> {
+    serial_println!("pmlx{:x}",(&*pmlx)[entry]);
     if (&*pmlx)[entry] & 1 == 0 {
         Err(KernelError::TranslatePage)
     } else {
@@ -66,7 +67,7 @@ pub unsafe fn current_pagemap() -> u64 {
     Cr3::read().0.start_address().as_u64()
 }
 
-pub unsafe fn copy_image_into_other_address_space(address_space: u64, image: &[u8], dest: *mut u8) -> Result<(), KernelError> {
+pub unsafe fn copy_image_into_address_space(address_space: u64, image: &[u8], dest: usize) -> Result<(), KernelError> {
     let mut num = 0;
     let mut frame = core::ptr::null_mut();
     for byte in image {
@@ -74,7 +75,7 @@ pub unsafe fn copy_image_into_other_address_space(address_space: u64, image: &[u
             frame = Freelist::allocate::<u8>()?;
             map_to(address_space, (dest as u64 & !0xFFF) + num, frame as u64, 7)?;
         }
-        *frame.add(num as usize + (dest as usize & 0xFFF)) = *byte;
+        *frame.add(num as usize + (dest & 0xFFF)) = *byte;
         num += 1;
     }
     Ok(())

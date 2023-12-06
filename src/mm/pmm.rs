@@ -7,7 +7,7 @@ pub struct Freelist {
 
 impl Freelist {
     pub unsafe fn free<T>(page: *mut T) {
-        if page as usize & 0xFFF == 0 {
+        if page.is_aligned_to(4096) {
             (*page.cast::<Freelist>()).next = FREELIST;
             FREELIST = Some(page.cast());
         }
@@ -16,7 +16,6 @@ impl Freelist {
     pub unsafe fn allocate<T>() -> Result<*mut T, KernelError> {
         if let Some(freelist) = FREELIST {
             FREELIST = (*freelist).next;
-            serial_println!("Allocated page {:x}", freelist as usize);
             Ok(freelist.cast())
         } else {
             Err(KernelError::AllocatePage)
@@ -41,6 +40,6 @@ pub unsafe fn pmm_init() {
                 page += 4096;
             }
         }
-        println!("Usable memory: {usable_pages} pages ({}MiB)", usable_pages / 256);
+        println!("Usable memory: {usable_pages} pages ({} MiB)", usable_pages / 256);
     }
 }
