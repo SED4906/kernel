@@ -29,10 +29,25 @@ impl Framebuffer {
     pub fn pixel(&self, x: usize, y: usize, color: u32) {
         let pixel_offset = y * self.pitch / 4 + x;
         unsafe {
-            *(self.address.add(pixel_offset)) = color;
+            if color & 0xFF000000 == 0xFF000000 {
+                *(self.address.add(pixel_offset)) = color;
+            } else {
+                let current = *(self.address.add(pixel_offset));
+                let alpha = ((color & 0xFF000000) >> 24) as i32;
+                let mut c0 = (color & 0xFF) as i32;
+                let cc0 = (current & 0xFF) as i32;
+                let mut c1 = ((color & 0xFF00) >> 8) as i32;
+                let cc1 = ((current & 0xFF00) >> 8) as i32;
+                let mut c2 = ((color & 0xFF0000) >> 16) as i32;
+                let cc2 = ((current & 0xFF0000) >> 16) as i32;
+                c0 = (cc0 * 255 + alpha * (c0 - cc0)) / 255;
+                c1 = (cc1 * 255 + alpha * (c1 - cc1)) / 255;
+                c2 = (cc2 * 255 + alpha * (c2 - cc2)) / 255;
+                *(self.address.add(pixel_offset)) = (c0 & 0xFF) as u32 | (((c1 & 0xFF) as u32) << 8) | (((c2 & 0xFF) as u32) << 16) | 0xFF000000;
+            }
         }
     }
-
+    
     pub fn read_pixel(&self, x: usize, y: usize) -> u32 {
         let pixel_offset = y * self.pitch / 4 + x;
         return unsafe {
@@ -105,8 +120,8 @@ impl Framebuffer {
             let t2 = t1 - x;
             if t2 >= 0 {
                 t1 = t2;
-                x -= 1;
             }
+            x -= 1;
         }
     }
 
