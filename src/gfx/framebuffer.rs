@@ -68,10 +68,10 @@ impl Framebuffer {
     }
 
     pub fn line(&self, x0: usize, y0: usize, x1: usize, y1: usize, color: u32) {
-        let mut x0: isize = x0.try_into().unwrap();
-        let mut y0: isize = y0.try_into().unwrap();
-        let x1: isize = x1.try_into().unwrap();
-        let y1: isize = y1.try_into().unwrap();
+        let mut x0: isize = x0 as isize;
+        let mut y0: isize = y0 as isize;
+        let x1: isize = x1 as isize;
+        let y1: isize = y1 as isize;
         let dx: isize = if x1 > x0 { x1 - x0 } else { x0 - x1 };
         let sx: isize = if x0 < x1 { 1 } else { -1 };
         let dy: isize = if y1 > y0 { y0 - y1 } else { y1 - y0 };
@@ -120,8 +120,8 @@ impl Framebuffer {
             let t2 = t1 - x;
             if t2 >= 0 {
                 t1 = t2;
+                x -= 1;
             }
-            x -= 1;
         }
     }
 

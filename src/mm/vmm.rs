@@ -2,10 +2,18 @@ use x86_64::registers::control::Cr3;
 
 use crate::{error::KernelError, serial_println};
 
-use super::pmm::Freelist;
+use super::pmm::{Freelist, self};
 
 #[no_mangle]
 pub static mut KERNEL_PAGEMAP: u64 = 0;
+
+pub fn hhdm<T>(ptr: *const T) -> *const T {
+    ((ptr as usize) + unsafe{pmm::HHDM}) as *const T
+}
+
+pub fn hhdm_mut<T>(ptr: *mut T) -> *mut T {
+    ((ptr as usize) + unsafe{pmm::HHDM}) as *mut T
+}
 
 pub unsafe fn map_to(pagemap: u64, page: u64, frame: u64, flags: u64) -> Result<u64, KernelError> {
     let pml4e = ((page >> 39) & 0x1FF) as usize;

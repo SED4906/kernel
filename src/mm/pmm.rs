@@ -1,5 +1,8 @@
 use crate::{error::KernelError, serial_println, println};
 
+static HHDM_REQUEST: limine::HhdmRequest = limine::HhdmRequest::new(0);
+pub static mut HHDM: usize = 0;
+
 static mut FREELIST: Option<*mut Freelist> = None;
 pub struct Freelist {
     next: Option<*mut Freelist>
@@ -42,4 +45,5 @@ pub unsafe fn pmm_init() {
         }
         println!("Usable memory: {usable_pages} pages ({} MiB)", usable_pages / 256);
     }
+    HHDM = HHDM_REQUEST.get_response().get().expect("received no hhdm").offset as usize;
 }

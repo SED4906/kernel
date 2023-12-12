@@ -32,6 +32,10 @@ unsafe extern "C" fn _start() -> ! {
         framebuffer.rect(160, 160, 224, 224, 0xFF00FF80, 0x8000FF80);
         framebuffer.rect(168, 168, 232, 232, 0xFF0080FF, 0x800080FF);
         framebuffer.rect(176, 176, 240, 240, 0xFF0000FF, 0x800000FF);
+        serial_println!("first line");
+        framebuffer.line(256, 256, 320, 384, 0xFF808080);
+        serial_println!("second line");
+        framebuffer.line(256, 256, 384, 320, 0xFF808080);
     }
     desc_init();
     mm_init();
